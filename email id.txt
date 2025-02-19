@@ -1,0 +1,19 @@
+%{
+%}
+
+%%
+
+[.a-z A-Z 0-9]+@[a-z]+(.com|.in) {printf("\nE-mail ID Valid\n");}
+
+.+ {printf("\nE-mail ID Invalid\n");}
+
+%%
+int yywrap(void) {}
+
+int main()
+{
+	printf("\nEnter E-mail ID: ");
+	yylex();
+	printf("\n");
+	return 0;
+}
