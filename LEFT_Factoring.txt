@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_PRODUCTIONS 10
+#define MAX_SYMBOLS 100
+
+typedef struct {
+    char nonTerminal;
+    char productions[MAX_PRODUCTIONS][MAX_SYMBOLS];
+    int numProds;
+} GrammarRule;
+
+GrammarRule rules[MAX_PRODUCTIONS];
+int numRules = 0;
+
+// Function to find the longest common prefix
+int findCommonPrefix(char *prefix, char prods[MAX_PRODUCTIONS][MAX_SYMBOLS], int numProds) {
+    int i, j;
+    int len = strlen(prods[0]);
+
+    for (i = 1; i < numProds; i++) {
+        int k = 0;
+        while (k < len && prods[i][k] == prods[0][k]) {
+            k++;
+        }
+        len = k;
+    }
+
+    if (len > 0) {
+        strncpy(prefix, prods[0], len);
+        prefix[len] = '\0';
+        return len;
+    }
+    return 0;
+}
+
+// Function to perform left factoring
+void leftFactor(GrammarRule *rule) {
+    char prefix[MAX_SYMBOLS];
+    int commonLen = findCommonPrefix(prefix, rule->productions, rule->numProds);
+    int i;
+
+    if (commonLen == 0) return; // No left factoring needed
+
+    // New rules
+    GrammarRule newRule;
+    newRule.nonTerminal = rule->nonTerminal + 1; // Instead of 'A'' use A'
+
+    int newProdIndex = 0, oldProdIndex = 0;
+    for (i = 0; i < rule->numProds; i++) {
+        if (strncmp(rule->productions[i], prefix, commonLen) == 0) {
+            if (strlen(rule->productions[i]) == commonLen) {
+                strcpy(newRule.productions[newProdIndex++], "e");
+            } else {
+                strcpy(newRule.productions[newProdIndex++], rule->productions[i] + commonLen);
+            }
+        } else {
+            strcpy(rule->productions[oldProdIndex++], rule->productions[i]);
+        }
+    }
+
+    rule->numProds = 1;
+    sprintf(rule->productions[0], "%s%c", prefix, newRule.nonTerminal);
+
+    newRule.numProds = newProdIndex;
+    rules[numRules++] = newRule;
+}
+
+// Function to print the grammar
+void printGrammar() {
+    int i, j;
+    printf("\nLeft Factored Grammar:\n");
+    for (i = 0; i < numRules; i++) {
+        printf("%c -> ", rules[i].nonTerminal);
+        for (j = 0; j < rules[i].numProds; j++) {
+            printf("%s", rules[i].productions[j]);
+            if (j < rules[i].numProds - 1) printf(" | ");
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    int i;
+    printf("Enter number of productions: ");
+    scanf("%d", &numRules);
+    getchar(); // Consume newline
+
+    for (i = 0; i < numRules; i++) {
+        printf("Enter production for non-terminal (e.g., A->abc|abd|aX|c): ");
+        char input[MAX_SYMBOLS];
+        fgets(input, MAX_SYMBOLS, stdin);
+        input[strcspn(input, "\n")] = 0; // Remove newline
+
+        rules[i].nonTerminal = input[0];
+        rules[i].numProds = 0;
+
+        char *token = strtok(input + 3, "|"); // Skip "A->"
+        while (token) {
+            strcpy(rules[i].productions[rules[i].numProds++], token);
+            token = strtok(NULL, "|");
+        }
+    }
+
+    // Perform left factoring
+    for (i = 0; i < numRules; i++) {
+        leftFactor(&rules[i]);
+    }
+
+    // Print the result
+    printGrammar();
+
+    return 0;
+}
